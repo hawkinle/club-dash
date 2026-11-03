@@ -1,0 +1,63 @@
+services:
+  square-reporting:
+    build: .
+    container_name: upper_horton_square_reports
+    restart: unless-stopped
+    environment:
+      - TZ=Australia/Sydney
+    ports:
+      # Bound strictly to localhost; external HTTPS traffic enters via cloudflared over internal Docker network
+      - "${BIND_ADDRESS:-127.0.0.1}:${APP_PORT:-8501}:8501"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks:
+      - uhsc_internal
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  nightly-sync:
+    build: .
+    container_name: upper_horton_nightly_sync
+    restart: unless-stopped
+    environment:
+      - TZ=Australia/Sydney
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks:
+      - uhsc_internal
+    entrypoint: ["python", "scripts/nightly_sync.py", "--daemon"]
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: upper_horton_cloudflared
+    restart: unless-stopped
+    environment:
+      - TZ=Australia/Sydney
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on:
+      - square-reporting
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks:
+      - uhsc_internal
+
+networks:
+  uhsc_internal:
+    driver: bridge

@@ -1,0 +1,21 @@
+# Secrets & Local Environment
+.env
+.env.*
+!.env.example
+
+# Temporary lock and WAL files
+*.duckdb.wal
+data/*.wal
+*.log
+data/*.log
+
+# Python & Environment Caches
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+.pytest_cache/
+.streamlit/secrets.toml
+
+# Deployment bundles
+*.tar.gz

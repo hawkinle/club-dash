@@ -1,0 +1,17 @@
+# Security: Never copy secrets, environment files, or live databases into Docker images
+.env
+.env.*
+!.env.example
+data/
+*.duckdb
+*.duckdb.wal
+*.sqlite3
+__pycache__/
+*.py[cod]
+*$py.class
+.git/
+.gitignore
+.venv/
+.pytest_cache/
+.streamlit/
+*.log
