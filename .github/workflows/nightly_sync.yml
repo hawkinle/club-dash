@@ -1,0 +1,56 @@
+name: Nightly Square Ledger Reconciliation (02:00 AM AEDT)
+
+on:
+  schedule:
+    # 02:00 AM AEDT (UTC+11 during daylight saving) = 15:00 UTC previous day
+    # 02:00 AM AEST (UTC+10 standard time) = 16:00 UTC previous day
+    # Run at 15:00 UTC daily (covers AEDT)
+    - cron: '0 15 * * *'
+  # Allows you to manually trigger it anytime from the GitHub Actions tab!
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Atomic 3-Day Reconciliation
+        env:
+          SQUARE_ENVIRONMENT: ${{ secrets.SQUARE_ENVIRONMENT || 'production' }}
+          SQUARE_ACCESS_TOKEN: ${{ secrets.SQUARE_ACCESS_TOKEN }}
+          SQUARE_LOCATION_ID: ${{ secrets.SQUARE_LOCATION_ID }}
+          USE_MOCK: "false"
+          DATABASE_PATH: "data/club_sales.duckdb"
+          CLUB_NAME: "Upper Horton Sports Club"
+        run: |
+          python scripts/nightly_sync.py --days 3
+
+      - name: Commit and Push Updated Ledger to Repository
+        run: |
+          git config user.name "UHSC Automated Reconciliation"
+          git config user.email "bot@upperhortonsportsclub.com.au"
+          git add data/club_sales.duckdb
+          if git diff --staged --quiet; then
+            echo "No new transactions or balance changes to commit."
+          else
+            git commit -m "chore(ledger): nightly Square reconciliation [skip ci]"
+            git push origin main
+          fi
