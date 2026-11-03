@@ -31,6 +31,11 @@ def run_once(days: int = 3) -> bool:
     now_syd = datetime.now(SYDNEY_TZ).strftime("%Y-%m-%d %H:%M:%S %Z")
     print(f"[{now_syd}] Starting UHSC Nightly Atomic Sync (trailing {days} days)...", flush=True)
 
+    from src.config import is_square_configured
+    if not is_square_configured():
+        print("[ERROR] SQUARE_ACCESS_TOKEN is not set or empty! Please add SQUARE_ACCESS_TOKEN under GitHub Repository Settings -> Secrets and variables -> Actions.", flush=True)
+        return False
+
     db = Database()
     engine = SyncEngine(db=db)
     res = engine.run_sync(days_back=days, atomic_staging=True)

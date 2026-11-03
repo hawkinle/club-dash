@@ -2,21 +2,18 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Try importing streamlit to check st.secrets (Streamlit Community Cloud support)
-try:
-    import streamlit as st
-    st_secrets = st.secrets
-except Exception:
-    st_secrets = {}
-
-# Load .env if present
+# Load local .env if present
 env_path = Path(__file__).resolve().parent.parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
 def get_config_val(key: str, default: str = "") -> str:
-    """Retrieves config from st.secrets (Streamlit Cloud) first, then os.getenv, then default."""
-    if key in st_secrets:
-        return str(st_secrets[key]).strip()
+    """Retrieves config from st.secrets (Streamlit Cloud) first if present, then os.getenv, then default."""
+    try:
+        import streamlit as st
+        if key in st.secrets:
+            return str(st.secrets[key]).strip()
+    except Exception:
+        pass
     return os.getenv(key, default).strip()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
